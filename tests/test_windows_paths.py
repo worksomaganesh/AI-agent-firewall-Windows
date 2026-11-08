@@ -1,6 +1,12 @@
 from __future__ import annotations
+
 import pytest
-from agent_boundary.policy.windows_paths import WindowsPathError, normalize_workspace_relative_path, to_policy_target
+
+from agent_boundary.policy.windows_paths import (
+    WindowsPathError,
+    normalize_workspace_relative_path,
+    to_policy_target,
+)
 
 @pytest.mark.parametrize(("raw", "expected"), [
     (r"src\main.py", "src/main.py"),
