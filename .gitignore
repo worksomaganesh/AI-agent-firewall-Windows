@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.python-version
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Test, type-check and lint artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.coverage.xml
+
+# Local session evidence and secrets
+.agent-boundary/
+artifacts/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Windows / IDE
+Thumbs.db
+Desktop.ini
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# .NET native host build outputs
+**/bin/
+**/obj/
