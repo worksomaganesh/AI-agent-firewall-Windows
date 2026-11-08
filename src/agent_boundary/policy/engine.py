@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import fnmatch
-import posixpath
 import ntpath
+import posixpath
 from dataclasses import dataclass, field
 
 from agent_boundary.policy.commandline import split_windows_command_line
