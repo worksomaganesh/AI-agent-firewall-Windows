@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 from agent_boundary.audit.events import AuditEventType, EnforcementMode
 from agent_boundary.audit.logger import AuditLogger
 from agent_boundary.audit.verifier import verify_audit_log
