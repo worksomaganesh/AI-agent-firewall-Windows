@@ -4,6 +4,7 @@ import pytest
 
 from agent_boundary.policy.commandline import CommandLineError, split_windows_command_line
 
+
 @pytest.mark.parametrize(("raw", "expected"), [
     ("agent.exe --flag value", ["agent.exe", "--flag", "value"]),
     ('"C:\\Program Files\\Agent\\agent.exe" --workspace "C:\\My Projects\\demo"', ["C:\\Program Files\\Agent\\agent.exe", "--workspace", "C:\\My Projects\\demo"]),
