@@ -1,11 +1,14 @@
 """CLI for the Windows-first agent-boundary policy and evidence core."""
 from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Annotated
+
 import typer
 from rich.console import Console
 from rich.table import Table
+
 from agent_boundary import __version__
 from agent_boundary.audit.report import generate_session_report
 from agent_boundary.audit.verifier import verify_audit_log
