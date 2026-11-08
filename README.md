@@ -21,7 +21,7 @@ Run an AI coding agent against a private staged copy of a project, constrain its
 - **Host policy proxy:** the separate network broker evaluates the existing domain/port policy and resolves destinations. Proxy-only egress must use an identity-scoped AppContainer/package peer; a plain proxy environment variable is not a security boundary.
 - **Private workspace copy:** the original project is not the agent's writable working directory. Changes are reviewed and exported separately.
 
-Read the [Windows architecture](docs/architecture/windows-architecture.md), [Linux-to-Windows porting map](docs/architecture/porting-map.md), [build roadmap](docs/roadmap.md), and [security policy](SECURITY.md).
+Follow the [sequential build plan](docs/BUILD_PLAN.md) and [phase tracker](docs/phase-tracker.md). Read the [Windows architecture](docs/architecture/windows-architecture.md), [Linux-to-Windows porting map](docs/architecture/porting-map.md), [build roadmap](docs/roadmap.md), and [security policy](SECURITY.md).
 
 ## Current implementation
 
