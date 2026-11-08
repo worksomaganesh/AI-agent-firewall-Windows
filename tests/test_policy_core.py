@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import pytest
+
 from agent_boundary.policy.engine import ActionRequest, PolicyEngine
 from agent_boundary.policy.parser import PolicyValidationError, load_policy_from_text
 from agent_boundary.policy.schema import Decision
