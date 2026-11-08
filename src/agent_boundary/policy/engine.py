@@ -8,7 +8,6 @@ import posixpath
 from dataclasses import dataclass, field
 
 from agent_boundary.policy.commandline import split_windows_command_line
-
 from agent_boundary.policy.schema import (
     ActionCategory,
     CommandRule,
