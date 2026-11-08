@@ -6,6 +6,7 @@ from agent_boundary.audit.events import AuditEventType, EnforcementMode
 from agent_boundary.audit.logger import AuditLogger
 from agent_boundary.audit.verifier import verify_audit_log
 
+
 def test_audit_chain_round_trip_and_mutation_detection(tmp_path: Path) -> None:
     path = tmp_path / "audit.jsonl"
     logger = AuditLogger(path, "test-session", EnforcementMode.SIMULATION, hmac_key="synthetic-test-key")
