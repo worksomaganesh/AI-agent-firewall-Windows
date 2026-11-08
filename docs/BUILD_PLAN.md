@@ -1,348 +1,320 @@
-# Windows Build Plan — Phase-by-Phase Execution
+# Windows Build Plan — Sequential Phase Delivery
 
 **Project:** AI Agent Firewall for Windows  
-**Reference implementation:** https://github.com/worksomaganesh/ai-agent-firewall  
+**Linux reference:** https://github.com/worksomaganesh/ai-agent-firewall  
 **Windows implementation:** https://github.com/worksomaganesh/AI-agent-firewall-Windows  
 **Plan date:** 8 November 2026  
-**Target registration date:** 20 November 2026  
-**Hard registration deadline:** 25 November 2026
+**Registration checkpoint:** 20 November 2026  
+**Hard deadline:** 25 November 2026
 
 ---
 
-## 1. Mission and product boundary
+## 1. Mission
 
-Build a practical Windows-native security supervisor for AI coding agents. An agent should work in a private project copy, have only the resources the operator grants, use a policy-mediated network path when enabled, require human approval for explicitly mediated sensitive operations, and leave behind verifiable evidence and a reviewable diff.
+Build a usable Windows-native security supervisor for AI coding agents. An agent works against a private staged copy of a developer's project, receives only the filesystem and network access the operator allows, requests human approval for explicitly mediated sensitive operations, and leaves reviewable, verifiable evidence.
 
-The Windows repository is a separate implementation. The Linux repository is our architecture, behavior, and test reference—not a source of Linux enforcement code to be renamed.
+This is a separate Windows implementation. The Linux repository is our reference for architecture, policy behavior, tests, engineering sequence and documentation discipline—not code to mechanically rename.
 
 ### Product guarantees we intend to prove
 
-1. Strict policy parsing: duplicate YAML keys, unknown fields, malformed input, and unknown actions fail closed.
-2. Deterministic decisions: DENY > REQUIRE_APPROVAL > ALLOW > DEFAULT DENY.
-3. The agent cannot modify the original project; it works only in a private staged copy.
-4. Required Windows isolation is established before the requested process starts. No silent unsandboxed fallback.
-5. Network is denied by default. Networked execution is permitted only when the exact proxy-only policy and identity binding are enforced and tested.
-6. Human approvals are exact-target, short-lived, one-use, host-side, and revalidated immediately before the mediated operation.
-7. Each session produces an audit chain, baseline/final manifests, a diff, and a report.
-8. Security claims describe only tested enforcement. Simulation and policy evaluation are never described as OS enforcement.
+1. **Strict policy:** duplicate YAML keys, unknown fields, malformed inputs and unknown actions fail closed.
+2. **Deterministic decisions:** DENY > REQUIRE_APPROVAL > ALLOW > DEFAULT DENY.
+3. **Private workspace:** the agent cannot modify the original project; it works only inside a staged copy.
+4. **OS enforcement:** required Windows isolation is established before the requested process starts. No silent unsandboxed fallback.
+5. **Network:** offline/default-deny is the initial posture. Networked execution is enabled only after proxy-only HTTP/HTTPS egress and proxy identity are verified.
+6. **Human approval:** exact-target, short-lived, one-use, host-side approval, revalidated before explicitly mediated operations.
+7. **Evidence:** session audit chain, baseline/final manifests, diff and human-readable report.
+8. **Honest claims:** simulation is never called enforcement; only observed and tested behavior is claimed.
 
-The first release is a focused local developer tool, not a GUI dashboard, enterprise endpoint product, universal command interceptor, or independently certified security product.
-
----
-
-## 2. Architecture and technology choices
-
-### Control plane
-
-- Python 3.11+ package and Typer CLI.
-- Pydantic policy schema and strict YAML parser.
-- Portable policy engine, deterministic simulator, hash-chained audit log, verifier and report generator.
-- Windows-specific path/command normalization, workspace staging, approval and review/export workflows.
-
-### Windows execution boundary
-
-**MXC ProcessContainer is the preferred integration candidate**, using the official .NET SDK. It avoids us writing a custom AppContainer/WFP implementation before we have evidence that the supported Windows APIs and host environment can meet the project requirements.
-
-- Native bridge: .NET 8 console sidecar.
-- SDK baseline to evaluate: `Microsoft.Mxc.Sdk` 1.0.1; pin the exact package after the host proof-of-concept.
-- Required preflight: platform support, available ProcessContainer backend, request-specific probe, selected isolation tier, warnings and errors.
-- Filesystem policy: explicit read-only/read-write/denied paths on the private staged workspace.
-- Network: offline/default-deny first; proxy-only mode only with the MXC-supported identity-scoped proxy peer and exact loopback endpoint.
-- Any host preparation that requires administrator approval remains an explicit operator step. The product must not elevate itself or change host security settings silently.
-
-MXC's public docs state Windows 11 24H2 or later with a supported ProcessContainer environment and .NET 8 or later. OS version alone does not establish feature availability. The runtime/request probe is a hard gate. Some hosts need one-time system/null-device preparation, which must be approved by an administrator. Review the official [quickstart](https://learn.microsoft.com/en-us/windows/apps/develop/mxc/quickstart), [platform support](https://learn.microsoft.com/en-us/windows/apps/develop/mxc/platform-support), [networking contract](https://github.com/microsoft/mxc/blob/v1.0.1/docs/backends/process-container/networking.md), and [v1.0.1 release](https://github.com/microsoft/mxc/releases/tag/v1.0.1).
-
-**Fallback rule:** if the selected MXC tier cannot enforce the required policy, stop and investigate. Do not fall back to ordinary `subprocess.Popen`, WSL, an identity-less proxy, or direct network access while retaining the word “protected”.
+The first release is a focused local developer tool—not a GUI dashboard, enterprise endpoint product, universal command interceptor or certified production security product.
 
 ---
 
-## 3. Phases and exit gates
+## 2. Build method: follow the existing Linux project
 
-We complete one phase at a time. A phase is not complete because code has been written; it is complete only after its exit gate passes and the evidence is recorded.
+We will follow the same development discipline that produced the Linux project:
 
-### Phase 0 — Build control, host compatibility and CI baseline
+- Build a deterministic policy core first.
+- Keep enforcement behind a clear backend boundary.
+- Separate the trusted host/supervisor from the untrusted agent.
+- Add tests with each component instead of postponing tests to the end.
+- Exercise attacks, malformed input, fail-closed behavior and state changes—not only happy paths.
+- Maintain audit evidence and explicit phase logs.
+- Keep the README and security limitations aligned with the actual code.
+- Finish one phase, review its evidence, then start the next.
+
+### Reuse from the Linux repository
+
+| Existing implementation | Windows plan |
+|---|---|
+| Pydantic policy schema and strict YAML parser | Reuse where platform-neutral |
+| DENY / approval / ALLOW / default-deny policy engine | Preserve precedence and behavior |
+| Audit event schema, SHA-256 chain, optional HMAC and verifier | Reuse portable core |
+| Simulator and mock-agent attack scenarios | Reuse and extend Windows attack cases |
+| Exit codes, report structure and CLI concepts | Preserve the interface where useful |
+| Existing acceptance, regression, property and adversarial tests | Port the test intent, then adapt platform-specific cases |
+
+### Rewrite for Windows only
+
+- Process launch and operating-system containment.
+- Workspace staging, Windows paths, ACLs, reparse points, junctions and alternate data streams.
+- Network restrictions and the Windows proxy path.
+- Host approval channel and Windows process lifecycle.
+- Windows packaging, install/setup and CI.
+
+### Do not copy into the Windows runtime
+
+Bubblewrap, Linux namespaces/mount flags, Seccomp-BPF, POSIX `resource.setrlimit`, `/dev/tty`, UNIX-domain socket guest bridge, and POSIX permission/symlink assumptions.
+
+---
+
+## 3. Architecture choice and mandatory feasibility gate
+
+### Preferred containment candidate: Microsoft Execution Containers (MXC)
+
+The preferred path is Microsoft's Windows ProcessContainer backend, integrated through the official .NET SDK. This avoids building our own AppContainer/WFP layer before proving host compatibility.
+
+- Python 3.11+ is the product control plane.
+- A small .NET 8 sidecar references `Microsoft.Mxc.Sdk`.
+- It probes platform support and the exact requested ProcessContainer policy before launching.
+- MXC applies the Windows process/filesystem/network restrictions it supports.
+- Python remains responsible for policy composition, domain policy proxy decisions, approvals, session audit and review/export.
+
+Do not pin a package version based only on a documentation example. Phase 0 must verify the current package version, API surface, license, supported Windows build and host diagnostics; then we pin the exact tested SDK/runtime in the bridge project.
+
+### MXC compatibility facts that affect the design
+
+- The current official quickstart states Windows 11 24H2 or later, a supported ProcessContainer environment, and .NET 8 SDK or later for C#.
+- A supported OS version does **not** guarantee that every optional ProcessContainer feature exists on a given host. Runtime support and request-specific probes are mandatory.
+- Some hosts need a one-time administrator-approved preparation step for the AppContainer fallback tier. The app must display the diagnostic and instructions; it must never self-elevate or silently change machine security settings.
+- The network proxy contract is for HTTP/HTTPS clients using the supported proxy path. It is **not a transparent TCP/UDP tunnel**. Raw sockets and non-proxy protocols must remain blocked in the proxy-only posture.
+- MXC's WFP rules enforce IP/CIDR, protocol and port boundaries. They do not provide durable DNS-name policy. Our host proxy must enforce hostname/port rules and DNS-address validation for HTTP CONNECT / HTTP requests.
+- The secure proxy mode requires an identity-scoped proxy peer (`allowedProxyPeer`) and the documented ingress/egress settings. Identity-less host-loopback proxy is a weaker compatibility path and must not be silently selected.
+- If exact request probing says the requested tier/policy is unsupported, the run command must not start.
+
+Official sources:
+- [MXC quickstart](https://learn.microsoft.com/en-us/windows/apps/develop/mxc/quickstart)
+- [MXC platform support](https://learn.microsoft.com/en-us/windows/apps/develop/mxc/platform-support)
+- [ProcessContainer networking](https://github.com/microsoft/mxc/blob/main/docs/backends/process-container/networking.md)
+- [MXC .NET SDK reference](https://github.com/microsoft/mxc/tree/main/docs/api-reference/dotnet/v1)
+
+### Mandatory backend gate
+
+The team does not commit to MXC as the final runtime until Phase 0 proves that the development/target laptop can probe and execute the minimum no-network ProcessContainer request. If it cannot, stop and reassess the backend before building the rest of the product on an assumed sandbox.
+
+---
+
+## 4. Phases
+
+We use four major phases, matching the structure of the existing project, preceded by a short Phase 0 feasibility gate.
+
+## Phase 0 — Foundation and Windows runtime feasibility
 
 **Target:** 8 November
 
-**Purpose:** Lock the design and remove unknowns before investing in the Windows runtime.
+Purpose: lock architecture, toolchain and CI before feature development.
 
 Work:
-- Freeze the phase plan and the MVP scope.
-- Verify the new repository tree, package layout, branch/commit convention and issue/phase log convention.
-- Inspect the user's Windows edition/build, architecture, Python, .NET SDK/runtime, and available permissions.
-- Fix the existing Windows CI lint blocker, then execute lint, type-check, tests and package build.
-- Build a tiny MXC .NET probe outside the product runner: print platform support, available backends and request-probe diagnostics for a minimal no-network ProcessContainer request.
-- Record whether host preparation is required; do not perform privileged setup automatically.
+1. Confirm the new repo, default branch, folder layout, phase tracker and documentation convention.
+2. Record the actual target machine's Windows edition/build, architecture, Python version and available .NET SDK/runtime.
+3. Fix the current Windows CI lint blocker and get the full Python checks running.
+4. Build a tiny standalone .NET MXC probe; inspect platform support, available ProcessContainer backend and exact request-probe diagnostics.
+5. Check host-preparation warnings, package version, public API, licensing and deployment requirements.
+6. Record whether the laptop can run a harmless no-network ProcessContainer test. No privileged preparation is performed automatically.
 
-**Exit gate:**
-- Windows CI passes through all steps (not just dependency installation).
-- We know whether the development machine can run the selected ProcessContainer tier.
-- A minimal .NET MXC app builds and returns structured host/request probe results.
-- The MVP and unsupported-host behavior are documented.
+Exit gate:
+- Windows CI passes lint, typing, tests and package build.
+- MXC probe builds and reports support/unsupported reasons on the actual target machine.
+- Host-preparation requirements and exact SDK/runtime versions are known.
+- Backend feasibility is explicitly recorded.
 
-**Stop condition:** If MXC cannot provide the required Windows containment on the development/target environment, reassess the backend before continuing. Do not build product features on an assumed sandbox.
+**Stop condition:** if the chosen containment tier cannot be made available on the target environment, reassess before Phase I/II work expands.
 
-### Phase 1 — Portable security core parity
+## Phase I — Deterministic security core and Windows policy semantics
 
 **Target:** 8–10 November
 
-**Purpose:** Reuse existing proven logic rather than rewriting it.
+Purpose: port the reusable core quickly and make Windows-specific decision inputs correct.
 
-Port/refine:
-- Pydantic policy schema and strict YAML parser.
-- Deterministic policy engine and rule precedence.
-- Policy evaluation result types and stable exit codes.
-- Hash-chained audit events/logger/verifier, optional HMAC and reports.
-- Deterministic simulator and reusable attack scenarios.
-- Current CLI surface for validate, evaluate, simulate, audit verification and reports.
+Work:
+1. Port/refine strict Pydantic policy schema and duplicate-key/unknown-field YAML parser.
+2. Preserve deterministic rule precedence: DENY > REQUIRE_APPROVAL > ALLOW > DEFAULT DENY.
+3. Port policy evaluation, stable exit codes, audit schema/hash core/verifier, simulator and report concepts.
+4. Build Windows command-line tokenization and executable normalization. Never invoke a shell for policy parsing or direct process launch.
+5. Define a logical `/workspace` policy namespace mapped explicitly to the physical staged workspace.
+6. Normalize Windows paths and reject unsafe forms: traversal, drive-qualified/UNC/device namespace paths, reserved device names, trailing dots/spaces, alternate data streams and control characters.
+7. Normalize/validate network targets including bracketed IPv6, malformed authorities, IDNA/hostname rules and port bounds.
+8. Port relevant existing acceptance, regression, property and adversarial tests; add Windows fixtures.
+9. Finish `validate-policy`, `evaluate`, and deterministic `simulate` CLI paths.
 
-Method:
-- Compare each copied module with the Linux reference and preserve behavior where it is OS-independent.
-- Port existing tests alongside modules: acceptance, regression, policy properties, approval semantics, proxy parsing, audit tamper detection and report behavior.
-- Do not port Bubblewrap, Seccomp, Linux resource limits or UNIX-socket bridge code.
+Exit gate:
+- The portable policy/audit/simulation suite passes on Windows with Python 3.11, 3.12 and 3.13.
+- Policy precedence, default-deny, YAML rejection, malformed command/path/network inputs and audit tamper/HMAC cases are tested.
+- The Windows default policy and attack scenario validate.
+- No Linux execution dependency remains in the Phase I code path.
 
-**Exit gate:**
-- Portable core tests pass on Windows Python 3.11, 3.12 and 3.13.
-- Test coverage includes duplicate YAML keys, unknown fields, precedence, default-deny, unknown actions, hash/HMAC verification, tampering, and simulation expectations.
-- CI passes lint, mypy, test and wheel/sdist smoke checks.
+## Phase II — Windows sandbox, private workspace and network enforcement
 
-### Phase 2 — Windows policy semantics and filesystem safety primitives
+**Target:** 10–16 November
 
-**Target:** 9–11 November
+Purpose: build the real Windows execution boundary.
 
-**Purpose:** Make policy decisions correct for Windows rather than applying POSIX assumptions.
+### A. Workspace staging
 
-Implement/test:
-- Drive-qualified, UNC, device namespace, rooted and relative path handling.
-- Case-insensitive Windows path comparisons and documented logical `/workspace` mapping.
-- Reserved device names, trailing dots/spaces, alternate data stream syntax and control characters.
-- Reparse-point, symlink, junction, mount-point and hard-link detection strategy.
-- Windows command-line tokenization, executable basename/extension resolution, quoting edge cases, and no shell invocation at the process boundary.
-- Host/port parsing including bracketed IPv6, malformed authorities and port limits.
-- Windows-specific default policy and test fixtures.
+- Create a unique per-session private workspace copy.
+- Exclude credentials and sensitive local files; protect Git hooks/config and sensitive metadata.
+- Reject/omit unsupported reparse points, symlinks, junctions, mount points, hard-link relationships and ADS rather than following them.
+- Apply restrictive permissions to the session root.
+- Do not copy source ACLs or alternate streams.
+- Create baseline/final manifests and SHA-256 file hashes.
+- Prove source workspace immutability.
 
-**Exit gate:**
-- Unit/property tests prove unsafe/ambiguous paths and commands fail closed.
-- Policy matching is deterministic under case variation and executable path variation.
-- Filesystem paths passed to the enforcement layer are canonical physical paths, while the policy core uses the documented logical workspace namespace.
+### B. MXC host bridge and process execution
 
-### Phase 3 — Private workspace staging and evidence
+- Build a minimal .NET 8 sidecar with a pinned, tested `Microsoft.Mxc.Sdk` version.
+- Use typed SDK request classes, not hand-assembled JSON.
+- Run host-wide capability discovery and exact request-specific ProcessContainer probe.
+- Map the staged workspace to explicit read-write/read-only/denied filesystem paths.
+- Supply a minimal child environment. For Windows ProcessContainer, validate all required environment fields (including `SystemRoot` and `LOCALAPPDATA`) against the selected SDK contract.
+- Spawn/wait/terminate with a clear timeout; stream stdout/stderr back to the supervisor.
+- Use structured request/response types and explicit error/warning codes between Python and .NET.
+- Refuse to start the requested command after a missing bridge, failed probe, unsupported tier, invalid filesystem policy or setup error.
 
-**Target:** 10–12 November
+### C. Network controls
 
-**Purpose:** Ensure the agent never works directly in the user's source project.
+First implement and test **offline mode**, with all external network access denied.
 
-Implement:
-- Create unique per-session workspace copy.
-- Secret/credential exclusions and protected metadata handling.
-- Safe traversal and file copying without following unsupported reparse points.
-- Reject or safely omit ADS, junctions, mount points, unsupported file types and hard-link relationships.
-- Apply restrictive session-directory permissions; ensure the agent is not granted the original workspace.
-- Sanitize copied Git metadata/hooks as designed.
-- Baseline/final manifests, SHA-256 file hashes, changed-path diff and session cleanup.
-- Safe export/discard with no overwrite and traversal protections.
+Then implement the secure network-enabled mode:
+- Start a separate host policy proxy on a session-specific loopback endpoint.
+- Configure MXC's supported HTTP/HTTPS proxy-only egress mode, with egress default deny.
+- Use an identity-scoped proxy package/AppContainer profile through `allowedProxyPeer`; keep general host-loopback access denied.
+- Health-check and bind the proxy to the exact endpoint specified in the MXC request.
+- Apply domain/port policy, DNS answer validation, reserved/private/loopback/link-local/metadata destination rejection, request framing limits and timeouts inside the proxy.
+- Ensure IPv4 and IPv6 direct sockets and raw/non-HTTP protocols are blocked by the OS containment policy.
+- Record proxy decisions in audit evidence and tear down proxy/session state after exit.
 
-**Exit gate:**
-- Attack fixtures for traversal, symlink/reparse escape, hard links, ADS, secret files and Git hook persistence pass on real Windows.
-- A child process modifying the staged copy leaves the original workspace byte-for-byte unchanged.
-- Interrupted staging and cleanup failures are handled safely and recorded.
+Exit gate:
+- Real Windows tests prove agent access is restricted to the staged workspace.
+- A harmless ProcessContainer command runs; original source remains unchanged.
+- Unsupported request/probe or backend failure proves the target process is never launched unsandboxed.
+- Offline mode denies external network.
+- Proxy-only mode (when supported) allows only the identity-bound proxy path; direct IPv4/IPv6 and raw/non-proxy network paths are blocked.
+- The proxy enforces allowed/denied hostnames and ports before opening upstream connections.
+- All tested tier, proxy, network and cleanup details are reported honestly.
 
-### Phase 4 — Windows ProcessContainer execution backend
-
-**Target:** 12–14 November
-
-**Purpose:** Launch an actual Windows process within the selected OS-enforced boundary.
-
-Implement:
-- .NET 8 host bridge referencing the pinned MXC SDK.
-- Typed request construction from validated Python-side session settings.
-- Host and request-specific capability probing.
-- Explicit physical workspace grants and protected-path denials.
-- Explicit minimal child environment (including Windows-required environment variables).
-- Process spawn/wait/timeout/kill and stdout/stderr transport.
-- Structured result/error/warning protocol between Python and .NET.
-- Fail-closed preflight; no target command starts on unsupported backend, failed probe, missing required policy or bridge crash.
-
-**Exit gate:**
-- Real Windows integration test runs a harmless command under ProcessContainer.
-- Positive test reads an explicitly granted file and writes only to an explicitly granted output directory.
-- Negative test attempts to write a denied/original host path and is denied.
-- Timeout/termination behavior is verified.
-- A forced preflight failure proves that the target command was never started.
-- Selected tier and all warnings are recorded in the audit evidence.
-
-### Phase 5 — Network policy firewall and proxy-only egress
-
-**Target:** 14–17 November
-
-**Purpose:** Preserve the original project's key network value: direct connections are not trusted just because an agent sets a proxy variable.
-
-Implement:
-- Host-side HTTP proxy and HTTPS CONNECT handling.
-- Existing hostname/port policy semantics, destination normalization and DNS checks.
-- Deny loopback, private, link-local, reserved and cloud metadata ranges by default; validate every DNS answer and connection target.
-- Session-specific loopback endpoint, random port and bounded request parsing/timeouts.
-- MXC egress default deny + documented proxy-only configuration.
-- Identity-scoped proxy using the required package family/AppContainer profile identity and `allowedProxyPeer`; keep general host-loopback access denied.
-- Proxy starts before client sandbox, is health-checked, remains alive for the session and is stopped during teardown.
-- Record network allow/deny/approval decisions in the audit chain.
-
-**Exit gate:**
-- Direct IPv4 and IPv6 socket attempts from the contained process are blocked.
-- Only the intended proxy endpoint is reachable from the contained workload.
-- Proxy identity and exact loopback endpoint are verified.
-- Unlisted destinations, private/loopback/metadata destinations, malformed requests, DNS rebinding patterns and private mixed DNS answers are denied before upstream connect.
-- An allowed test destination works through the proxy.
-- If identity-scoped proxy prerequisites are unavailable, network-enabled execution is refused; no weaker proxy mode is silently selected.
-
-### Phase 6 — Human approvals, guarded operations and review workflow
+## Phase III — Approvals, guarded workflows and evidence
 
 **Target:** 16–18 November
 
-**Purpose:** Preserve the original design's human-in-the-loop workflow without claiming universal interception.
+Purpose: integrate the human-in-the-loop and evidence workflow from the existing product.
 
-Implement:
-- Trusted host approval broker independent of agent stdin/stdout.
-- Exact action, normalized target, policy rule, target fingerprint, expiry and one-use grant binding.
-- Revalidation immediately before each mediated action; deny on target replacement/state change.
-- Guarded filesystem/command/network adapters for actions explicitly mediated by the product.
-- Session review, changed-path display, explicit export/discard and evidence preservation.
-- Never treat approval as universal permission for arbitrary syscalls or child commands.
+Work:
+1. Port exact-action, one-use, short-lived approval grants.
+2. Implement a trusted host approval channel independent of agent stdin/stdout.
+3. Bind grants to action, normalized target, matched rule and target-state fingerprint; revalidate just before mediated operation.
+4. Fail closed on wrong response, timeout, expiry, reuse, scope mismatch, missing broker and changed target.
+5. Connect approvals to explicitly mediated filesystem/command/network adapters.
+6. Add complete session lifecycle events: policy decisions, sandbox preflight, selected tier, proxy state, process result, approvals, cleanup.
+7. Generate baseline/final workspace snapshots and changed-path diff.
+8. Implement review, explicit export and discard; prevent overwrite/traversal/reparse-source export.
+9. Preserve evidence even when export is denied or the session fails.
 
-**Exit gate:**
-- Wrong, expired, reused, mismatched and unavailable approvals all deny.
-- Target mutation while approval is pending revokes the grant.
-- Denied operations are never performed.
-- Export copies only reviewed changed files, never overwrites, rejects traversal/reparse sources, and preserves audit evidence.
+Important boundary: this approval layer governs operations routed through our trusted adapters. Do not claim it intercepts every arbitrary syscall or every child command.
 
-### Phase 7 — End-to-end adversarial validation
+Exit gate:
+- Approval replay/expiry/mismatch/TOCTOU tests pass.
+- Denied operations never execute.
+- Export only copies reviewed files, never overwrites, and cannot follow unsafe source paths.
+- A complete session report shows enforcement mode, policy decisions, audit status, changed files, and limitations.
 
-**Target:** 18–19 November
+## Phase IV — Advanced verification, adversarial hardening and release
 
-**Purpose:** Prove the complete product behavior on Windows—not only unit-level functions.
+**Target:** 18–20 November
 
-Run full test layers:
-- Policy schema, precedence and property-based tests.
-- Workspace/path/reparse/ADS/race tests.
-- Process containment and process-tree timeout tests.
-- Direct network bypass, IPv4/IPv6, loopback and DNS adversarial tests.
-- Approval-scope/replay/expiry/TOCTOU tests.
-- Audit tampering, ordering, missing HMAC and head-anchor tests.
-- Full attack scenario with expected outcomes and evidence inspection.
-- Clean Windows environment smoke test and Python/.NET package build tests.
+Purpose: test the product as a complete Windows security tool and prepare a usable demo.
 
-**Exit gate:**
-- All required Windows integration and adversarial tests pass on a recorded Windows build.
-- No skipped test is counted as passed.
-- No critical/high-severity known defect remains in the demo path.
-- README security claims match observed evidence.
-- CI green, wheels/package install cleanly, and logs are retained.
+Test layers:
+- Policy schema and property-based tests.
+- Windows command/path normalization and adversarial path cases.
+- Reparse point, junction, ADS, hard-link and staging race cases.
+- Process containment, process termination and timeout tests.
+- Direct IPv4/IPv6 network bypass and proxy identity tests.
+- HTTP framing, CONNECT authority mismatch, DNS rebinding and private-address tests.
+- Approval scope, expiry, replay and target replacement tests.
+- Audit ordering, hash-chain tampering, HMAC and external head-anchor tests.
+- End-to-end attack scenario with expected decisions and evidence inspection.
+- Clean-machine install, wheel/source package smoke tests and Windows CI.
 
-### Phase 8 — Usable MVP, demo and registration
-
-**Target:** 19–20 November
-
-**Purpose:** Make the project usable by another developer/judge, not merely reviewable as source code.
-
-Deliver:
-- Clean installation instructions for Python, .NET bridge and MXC requirements.
-- A one-command policy validation/simulation path and an accurately gated run command.
-- Example Windows policy, example disposable workspace and repeatable attack demo.
-- Troubleshooting: host support, required host prep, policy denials, audit verification and clean-up.
-- Short demo script and evidence pack.
-- Release candidate tag and tested commit SHA.
+Release work:
+- Clear Python and .NET installation/setup guide.
+- Prerequisite and supported-host matrix.
+- Example Windows policy and attack scenario.
+- Troubleshooting for unsupported hosts, required admin-approved preparation, policy denials and cleanup.
+- Repeatable judge/demo script.
+- Tag a known-good release candidate and retain the tested commit SHA/CI evidence.
 - Register on **20 November** as planned.
 
-**Exit gate:**
-- A second person can follow the setup guide and run the safe demo without reading internal source code.
-- The exact demo build is tagged and its test evidence is saved.
-- Registration is complete on 20 November.
+Exit gate:
+- Required Windows integration/adversarial tests pass on a recorded Windows build.
+- No critical/high known defect remains in the demo path.
+- CI and package/install smoke tests are green.
+- Another person can follow the docs and run the safe demo.
+- Exact release candidate is tagged and evidence is preserved.
 
-### Stabilization window — 21–24 November
+## Stabilization — 21–24 November
 
-Only fix high-priority defects, installation issues, demo-breaking problems and documentation inaccuracies. Avoid introducing new features unless they are required to correct a security flaw.
+Only fix high-priority security, installation and demo-breaking defects. Avoid risky feature expansion. Re-test the known-good candidate after every change and keep a fallback tag.
 
-### Hard deadline — 25 November
+## 25 November — hard registration deadline
 
-Registration closes. Keep a known-good tagged build and evidence snapshot. Do not describe post-deadline work as part of the pre-registration release.
-
----
-
-## 4. Fast-track strategy using the Linux reference
-
-We move faster through **reuse and test-porting**, not by weakening security checks.
-
-### Reuse directly where behavior is portable
-
-- Policy Pydantic models and strict YAML parser.
-- Decision precedence and deterministic policy result structure.
-- Audit record schema, hash chaining, HMAC and verification logic.
-- Simulator and scenario runner.
-- Stable exit-code and reporting concepts.
-- Test cases and adversarial attack intent.
-
-### Rewrite only where Windows semantics differ
-
-- Process launch and isolation.
-- Filesystem staging, path validation, ACLs and reparse-point handling.
-- Network enforcement and proxy transport.
-- Approval terminal/broker implementation.
-- Process lifecycle, environment and Windows-specific packaging.
-
-### Do not carry over
-
-- Bubblewrap command construction.
-- Linux namespaces and mount flags.
-- Seccomp-BPF filters.
-- POSIX `resource.setrlimit`.
-- `/dev/tty`.
-- UNIX-domain socket guest bridge.
-- POSIX-only path, permission or symlink assumptions.
-
-### Work pattern for every phase
-
-1. Read the matching Linux implementation and tests.
-2. Write/port acceptance tests for the intended Windows behavior.
-3. Port the smallest reusable code slice.
-4. Implement the Windows-specific adapter/backend.
-5. Run targeted tests, the complete test suite and Windows CI.
-6. Update README, architecture notes, security limitations and phase log.
-7. Commit the phase with a clear message and record its tested commit SHA.
-8. Stop at the exit gate. Do not start the next phase with a red gate.
+Confirm registration completion and preserve the tagged build and evidence snapshot. No claim of registration is made until the user confirms it.
 
 ---
 
-## 5. Definition of done for every phase
+## 5. Fast-track plan
 
-A phase close-out must contain:
-- Scope completed and intentionally deferred items.
-- Files/modules changed.
-- Tests added and executed, with exact result.
-- Windows build / Python / .NET / MXC versions where applicable.
-- Security assumptions and limitations.
+We move faster by reusing the existing project's tested logic, not by weakening enforcement or skipping tests.
+
+- Port logic and tests together, not code alone.
+- Keep the policy engine independent of OS-specific adapters.
+- Start with offline-only Windows process containment before networked mode.
+- Reuse the simulator for rapid regression while separately requiring real Windows enforcement tests.
+- Limit the first UI to CLI and reports; defer GUI, plugin ecosystem, dashboards and multi-platform work.
+- Use one small .NET bridge rather than implementing native Windows APIs in multiple Python modules.
+- Make host capability probing a runtime gate, not a one-time assumption.
+- Do not begin the next major phase while the current phase's exit gate is red.
+
+## 6. Definition of done and phase records
+
+For every phase, record:
+- Deliverables and changed modules.
+- Reused Linux behavior and Windows-specific adaptations.
+- Tests executed and exact pass/fail/skip counts.
+- Windows edition/build, architecture, Python/.NET/MXC versions where relevant.
 - CI run URL and tested commit SHA.
-- A phase log under `docs/phase-logs/`.
-- Updated phase status in `docs/phase-tracker.md`.
+- Security assumptions, limitations and deferred work.
+- Updated README/security claims and a phase log under `docs/phase-logs/`.
 
-A code commit without its test evidence is not a phase completion.
+A commit without test evidence is not phase completion.
 
 ---
 
-## 6. Current position (8 November)
+## 7. Current position — 8 November 2026
 
-| Workstream | Status |
+| Item | Status |
 |---|---|
-| New Windows repository and architecture docs | Done |
-| Python policy/parser/audit/simulator baseline copied | Done as initial scaffold; parity not yet demonstrated |
-| Windows command/path helper baseline | Present; more adversarial cases required |
-| Windows policy/scenario/CLI baseline | Present |
-| Windows CI workflow | Added; currently **red at Ruff lint**, so later CI steps did not run |
-| MXC candidate and networking design research | Done at documentation level |
-| MXC host probe on the actual development machine | Not done |
+| New Windows repo, README and architecture/porting docs | Present |
+| Python policy/parser/engine/audit/simulator scaffold | Present; full parity not yet demonstrated |
+| Windows command/path helpers and starter tests | Present; adversarial coverage incomplete |
+| Windows policy/scenario and CLI scaffold | Present |
+| Windows CI matrix | Added; currently red at Ruff lint; mypy/tests/package steps have not completed |
+| MXC candidate and proxy-only networking research | Done at documentation level |
+| Actual laptop MXC host probe | Not done |
 | Workspace stager | Not implemented |
 | .NET ProcessContainer bridge | Not implemented |
-| Proxy identity and network enforcement | Not implemented |
-| Approval and review/export workflow | Not implemented |
-| End-to-end Windows security proof | Not done |
+| Windows execution enforcement | Not implemented |
+| Identity-scoped proxy service | Not implemented |
+| Approval/review/export workflow | Not implemented |
+| End-to-end Windows security evidence | Not done |
 
-**Current phase status:** Phase 0 is in progress; Phase 1 has a scaffold but is not complete. No Windows agent-run security boundary is available yet.
+**Current status:** Phase 0 is IN PROGRESS. Phase I has an initial scaffold but has not passed its completion gate. No protected Windows agent-run command is available yet.
