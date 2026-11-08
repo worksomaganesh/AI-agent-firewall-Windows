@@ -17,6 +17,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install package and test dependencies
         run: python -m pip install -e ".[dev]"
+      - name: Show Ruff import fix
+        continue-on-error: true
+        run: python -m ruff check --select I --fix --diff .
       - name: Lint
         run: python -m ruff check .
       - name: Type check
