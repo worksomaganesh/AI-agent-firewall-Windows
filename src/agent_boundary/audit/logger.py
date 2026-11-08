@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +58,7 @@ class AuditLogger:
     def log_event(self, event_type: AuditEventType, payload: dict[str, Any]) -> AuditRecord:
         """Append an event atomically, including when called by proxy worker threads."""
         with self._lock:
-            timestamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            timestamp_utc = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             event_hash = compute_event_hash(
                 seq=self._seq,
                 timestamp_utc=timestamp_utc,
