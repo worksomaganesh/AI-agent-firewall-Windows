@@ -8,6 +8,7 @@ from agent_boundary.policy.windows_paths import (
     to_policy_target,
 )
 
+
 @pytest.mark.parametrize(("raw", "expected"), [
     (r"src\main.py", "src/main.py"),
     (r"config\agent.yaml", "config/agent.yaml"),
