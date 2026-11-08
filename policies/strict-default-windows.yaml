@@ -7,7 +7,7 @@ filesystem:
   deny:
     - id: "deny-dotenv-secrets"
       operations: ["read", "write", "delete", "execute"]
-      paths: ["**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/*.pfx", "**/*.p12"]
+      paths: ["**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/*.pfx", "**/*.p12", "**/id_rsa", "**/id_dsa", "**/id_ecdsa", "**/id_ed25519", "**/credentials.json", "**/.npmrc"]
       reason: "Protect secret files and private keys inside the staged workspace."
     - id: "deny-git-hooks-persistence"
       operations: ["write", "delete", "execute"]
