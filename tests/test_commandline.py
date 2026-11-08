@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import pytest
+
 from agent_boundary.policy.commandline import CommandLineError, split_windows_command_line
 
 @pytest.mark.parametrize(("raw", "expected"), [
@@ -7,7 +9,7 @@ from agent_boundary.policy.commandline import CommandLineError, split_windows_co
     ('"C:\\Program Files\\Agent\\agent.exe" --workspace "C:\\My Projects\\demo"', ["C:\\Program Files\\Agent\\agent.exe", "--workspace", "C:\\My Projects\\demo"]),
     ('agent.exe "" tail', ["agent.exe", "", "tail"]),
     ('agent.exe "a b" c', ["agent.exe", "a b", "c"]),
-    ('agent.exe a\\\\"b', ["agent.exe", 'a"b']),
+    (r'agent.exe a\"b', ["agent.exe", 'a"b']),
 ])
 def test_split_windows_command_line(raw: str, expected: list[str]) -> None:
     assert split_windows_command_line(raw) == expected
